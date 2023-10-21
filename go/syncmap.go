@@ -29,7 +29,7 @@ func (m *SyncMap[K, V]) Store(key K, value V) {
 // LoadOrStore loads the value for the given key, or stores the given value if
 // not present.
 func (m *SyncMap[K, V]) LoadOrStore(
-  key K, value V,
+	key K, value V,
 ) (actual V, loaded bool) {
 	var v any
 	if v, loaded = m.m.LoadOrStore(key, value); loaded {

@@ -44,8 +44,8 @@ func CurrentDay() time.Time {
 
 const (
 	// SecsInDay is the seconds in a day
-	SecsInDay  int64 = 24 * 3600
-  // NanosInDay is the nanoseconds in a day.
+	SecsInDay int64 = 24 * 3600
+	// NanosInDay is the nanoseconds in a day.
 	NanosInDay int64 = int64(time.Hour) * 24
 )
 
