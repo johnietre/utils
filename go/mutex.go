@@ -2,6 +2,44 @@ package utils
 
 import "sync"
 
+// Locker represents an object that can be locked, attempted to be locked, and
+// unlocked.
+type Locker[T any] interface {
+	// Lock locks the object and returns a pointer to the data it holds.
+	Lock() *T
+	// TryLock attempts to lock the object, returning the pointer and true if
+	// successful, or nil, false otherwise.
+	TryLock() (*T, bool)
+	// Unlock unlocks the object.
+	Unlock()
+	// Apply locks the object and passes the pointer to its data to the given
+	// function.
+	Apply(func(*T))
+	// TryApply is the same as Apply but only makes an attempt to lock the
+	// object, returning false is locking failed.
+	TryApply(func(*T)) bool
+}
+
+// RLocker represents an object that can be read locked, attempted to be read
+// locked, and read unlocked. The data returned from the R methods should
+// not be mutated in order to withhold the usefulness of read locking.
+type RLocker[T any] interface {
+	Locker[T]
+	// RLock read locks the object and returns a pointer to the data it holds.
+	RLock() *T
+	// TryRLock attempts to read lock the object, returning the pointer and true
+	// if successful, or nil, false otherwise.
+	TryRLock() (*T, bool)
+	// RUnlock read unlocks the object.
+	RUnlock()
+	// RApply read locks the object and passes the pointer to its data to the
+	// given function.
+	RApply(func(*T))
+	// TryRApply is the same as RApply but only makes an attempt to read lock the
+	// object, returning false is read locking failed.
+	TryRApply(func(*T)) bool
+}
+
 // Mutex is a wrapper around a mutex and some data (the mutex "owns" the data).
 type Mutex[T any] struct {
 	data T

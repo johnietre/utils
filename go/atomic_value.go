@@ -59,7 +59,7 @@ func (a *AValue[T]) Load() T {
 func (a *AValue[T]) LoadSafe() (t T, ok bool) {
 	iT := a.v.Load()
 	if iT != nil {
-		t = iT.(T)
+		t, ok = iT.(T), true
 	}
 	return
 }
