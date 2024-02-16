@@ -1,14 +1,27 @@
 package utils
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
-	"strings"
 	"time"
 )
 
-// NormalizeSym normalizes a symbol (e.g., convert case, change '/'s).
-func NormalizeSym(sym string) string {
-	return strings.ToLower(sym)
+// IsMarshalError returns whether the error is from calling Marshal or the
+// process of marshaling. Useful in cases like json.Encoder.Encode where the
+// error could be with the underlying writer.
+func IsMarshalError(err error) bool {
+	me := &json.MarshalerError{}
+	ute, uve := &json.UnsupportedTypeError{}, &json.UnsupportedValueError{}
+	return errors.As(err, &ute) || errors.As(err, &uve) || errors.As(err, &me)
+}
+
+// IsUnmarshalError returns whether the error is from the unmarshaling itself.
+// This means that an InvalidUnmarshalError returns false since it's an error
+// with the call itself, not the unmarshaling process.
+func IsUnmarshalError(err error) bool {
+	ute, se := &json.UnmarshalTypeError{}, &json.SyntaxError{}
+	return errors.As(err, &ute) || errors.As(err, &se)
 }
 
 // ValOr returns the value pointed to by `ptr` or `or` if `ptr` is nil.
@@ -27,6 +40,11 @@ func ValOrDefault[T any](ptr *T) (t T) {
 
 // Appendflags are the flags used to open a file in append mode.
 const AppendFlags = os.O_CREATE | os.O_APPEND | os.O_WRONLY
+
+// OpenAppend is shorthand for calling os.OpenFile(path, AppendFlags, 0644).
+func OpenAppend(path string) (*os.File, error) {
+	return os.OpenFile(path, AppendFlags, 0644)
+}
 
 // NewT returns the pointer to a new T with the given value.
 func NewT[T any](t T) *T {

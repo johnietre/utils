@@ -3,3 +3,4 @@ Just some utilities that I often find myself wanting and recreating in various l
 
 # TODO
 - Go tests
+- Go FilterMap
