@@ -18,7 +18,7 @@ func generateSlice(l int, shuffle bool) []int {
 	return s
 }
 
-func TestFilter(t *testing.T) {
+func TestFilterSlice(t *testing.T) {
 	s := generateSlice(1000, false)
 	f := func(i int) bool {
 		return i%2 == 1
@@ -66,6 +66,51 @@ func TestFilter(t *testing.T) {
 		for num, b := range nums {
 			if b {
 				t.Errorf("missing element %d", num)
+			}
+		}
+	})
+}
+
+func TestFilterMapSlice(t *testing.T) {
+	s := generateSlice(1000, true)
+	f := func(i int) (int, bool) {
+		if i%2 == 1 {
+			return 0, true
+		}
+		return -1, false
+	}
+	want := make([]int, 500)
+
+	t.Run("FilterMapSlice", func(t *testing.T) {
+		got := FilterMapSlice(s, f)
+		if i := SliceCompare(got, want); i != -1 {
+			if l := len(got); l != 500 {
+				t.Errorf("want length of 500, got %d", l)
+			} else {
+				t.Errorf("index %d: want %d, got %d", i, got[i], want[i])
+			}
+		}
+	})
+
+	count := 0
+	f = func(i int) (int, bool) {
+		if i%2 == 1 {
+			i = count
+			count++
+			return i, true
+		}
+		return -1, false
+	}
+	for i := range want {
+		want[i] = i
+	}
+	t.Run("FilterMapSliceInPlace", func(t *testing.T) {
+		got := FilterMapSlice(s, f)
+		if i := SliceCompare(got, want); i != -1 {
+			if l := len(got); l != 500 {
+				t.Errorf("want length of 500, got %d", l)
+			} else {
+				t.Errorf("index %d: want %d, got %d", i, got[i], want[i])
 			}
 		}
 	})

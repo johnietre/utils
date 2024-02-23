@@ -24,6 +24,13 @@ func IsUnmarshalError(err error) bool {
 	return errors.As(err, &ute) || errors.As(err, &se)
 }
 
+// ErrAs is a shorthand for the following:
+// var et *ErrType
+// errors.As(err, &et)
+func ErrAs[T error](err error) bool {
+	return errors.As(err, new(T))
+}
+
 // ValOr returns the value pointed to by `ptr` or `or` if `ptr` is nil.
 func ValOr[T any](ptr *T, or T) T {
 	if ptr == nil {

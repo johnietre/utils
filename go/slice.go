@@ -7,7 +7,8 @@ func CloneSlice[T any](s []T) []T {
 	return res
 }
 
-// MapSlice maps a function onto a slice, returning a new slice.
+// MapSlice maps a function onto a slice, returning a new slice. The returned
+// slice has a capacity of the length of the given slice.
 func MapSlice[T, U any](s []T, f func(T) U) []U {
 	res := make([]U, 0, len(s))
 	for _, v := range s {
@@ -24,6 +25,55 @@ func MapSliceInPlace[T any](s []T, f func(T) T) []T {
 	return s
 }
 
+// FilterMapSlice filters and maps the elements of a slice, returning a new
+// slice. The allocated slice has a capacity of the length of the given slice.
+func FilterMapSlice[T, U any](s []T, f func(T) (U, bool)) []U {
+	res := make([]U, 0, len(s))
+	for _, t := range s {
+		if u, ok := f(t); ok {
+			res = append(res, u)
+		}
+	}
+	return res
+}
+
+// FilterMapSliceInPlace filters and maps the elements of a slice with a given
+// function, guaranteeing maintaining the original slice's order.
+func FilterMapSliceInPlace[T any](s []T, f func(T) (T, bool)) []T {
+	back := len(s) - 1
+	for i := back; i >= 0; i-- {
+		if t, ok := f(s[i]); !ok {
+			if i != back {
+				for j := i; j < back; j++ {
+					s[j], s[j+1] = s[j+1], s[j]
+				}
+			}
+			back--
+		} else {
+			s[i] = t
+		}
+	}
+	return s[:back+1]
+}
+
+// FilterMapSliceInPlaceUnstable filters and maps the elements of a slice with
+// a given function, without guaranteeing maintaining the original slice's
+// order.
+func FilterMapSliceInPlaceUnstable[T any](s []T, f func(T) (T, bool)) []T {
+	back := len(s) - 1
+	for i := back; i >= 0; i-- {
+		if t, ok := f(s[i]); !ok {
+			if i != back {
+				s[i], s[back] = s[back], s[i]
+			}
+			back--
+		} else {
+			s[i] = t
+		}
+	}
+	return s[:back+1]
+}
+
 // SearchSlice searches a slice for a given value, returning the index of -1.
 func SearchSlice[T comparable](s []T, t T) int {
 	for i, elem := range s {
@@ -35,7 +85,7 @@ func SearchSlice[T comparable](s []T, t T) int {
 }
 
 // SliceEq returns true if the slices are of equal length and all elements are
-// equal.
+// equal. The returned slice has a capacity of the length of the given slice.
 func SliceEq[T comparable](s1, s2 []T) bool {
 	l := len(s1)
 	if l != len(s2) {
