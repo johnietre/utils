@@ -5,7 +5,7 @@ import (
 )
 
 // Unit is just an alias empty struct.
-type Unit struct{}
+type Unit = struct{}
 
 // SyncSet is an alias for SyncMap[T, Unit]
 type SyncSet[T any] struct {
