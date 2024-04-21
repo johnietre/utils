@@ -1,7 +1,5 @@
-use std::sync::{
-    atomic::{AtomicPtr, Ordering},
-    Arc,
-};
+use std::sync::{atomic::AtomicPtr, Arc};
+pub use std::sync::atomic::Ordering;
 
 /// A container to safely share values atomically between threads.
 /// The underlying value is dropped when the `AtomicValue` is dropped, if there was a value.
