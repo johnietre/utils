@@ -127,6 +127,34 @@ impl<T: Sync + Clone> AtomicValue<T> {
         *Box::from_raw(self.0.swap(Box::into_raw(Box::new(val)), order))
     }
 
+    /// Takes the value stored without replacing it, if it exists.
+    #[inline(always)]
+    pub fn take(&self, order: Ordering) -> Option<T> {
+        let ptr = self.0.swap(0 as _, order);
+        if !ptr.is_null() {
+            unsafe { Some(*Box::from_raw(ptr)) }
+        } else {
+            None
+        }
+    }
+
+    /// Takes the value stored without replacing it.
+    ///
+    /// # Safety
+    ///
+    /// Calling this method without a value having been stored results in a null pointer
+    /// dereference.
+    #[inline(always)]
+    pub unsafe fn take_unchecked(&self, order: Ordering) -> T {
+        *Box::from_raw(self.0.swap(0 as _, order))
+    }
+
+    /// Returns whether there is a value stored or not.
+    #[inline(always)]
+    pub fn is_empty(&self, order: Ordering) -> bool {
+        self.0.load(order).is_null()
+    }
+
     /// Gets the underlying `AtomicPtr<T>`.
     ///
     /// # Safety
@@ -351,6 +379,29 @@ impl<T: ?Sized + Send + Sync> AtomicArcValue<T> {
     #[inline(always)]
     pub unsafe fn swap_arc_unchecked(&self, val: Arc<T>, order: Ordering) -> Arc<T> {
         self.0.swap_unchecked(val, order)
+    }
+
+    /// Takes the value stored without replacing it, if it exists.
+    #[inline(always)]
+    pub fn take(&self, order: Ordering) -> Option<Arc<T>> {
+        self.0.take(order)
+    }
+
+    /// Takes the value stored without replacing it.
+    ///
+    /// # Safety
+    ///
+    /// Calling this method without a value having been stored results in a null pointer
+    /// dereference.
+    #[inline(always)]
+    pub unsafe fn take_unchecked(&self, order: Ordering) -> Arc<T> {
+        self.0.take_unchecked(order)
+    }
+
+    /// Returns whether there is a value stored or not.
+    #[inline(always)]
+    pub fn is_empty(&self, order: Ordering) -> bool {
+        self.0.is_empty(order)
     }
 
     /// Gets the underlying `AtomicPtr<Arc<T>>`.
@@ -592,6 +643,15 @@ mod test_single {
             Err(456)
         );
         assert_eq!(av.load(Ordering::Relaxed), Some(123));
+
+        assert!(!av.is_empty(Ordering::Relaxed));
+        assert_eq!(av.take(Ordering::Relaxed), Some(123));
+        assert!(av.is_empty(Ordering::Relaxed));
+        assert_eq!(av.take(Ordering::Relaxed), None);
+        assert!(av
+            .store_if_empty(456, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok());
+        assert_eq!(av.load(Ordering::Relaxed), Some(456));
     }
 }
 
