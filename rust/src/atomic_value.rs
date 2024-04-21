@@ -76,6 +76,35 @@ impl<T: Sync + Clone> AtomicValue<T> {
         let _ = Box::from_raw(self.0.swap(Box::into_raw(Box::new(val)), order));
     }
 
+    /// Stores a value if no value has yet been stored. Uses compare_exchange under the hood.
+    ///
+    /// NOTE: This will always Box the value and, on failure, "unbox" the value.
+    #[inline(always)]
+    pub fn store_if_empty(&self, val: T, success: Ordering, failure: Ordering) -> Result<(), T> {
+        let ptr = Box::into_raw(Box::new(val));
+        self.0
+            .compare_exchange(0 as _, ptr, success, failure)
+            .map(|_| ())
+            .map_err(|_| unsafe { *Box::from_raw(ptr) })
+    }
+
+    /// Stores a value if no value has yet been stored. Uses compare_exchange_weak under the hood.
+    ///
+    /// NOTE: This will always Box the value and, on failure, "unbox" the value.
+    #[inline(always)]
+    pub fn store_if_empty_weak(
+        &self,
+        val: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<(), T> {
+        let ptr = Box::into_raw(Box::new(val));
+        self.0
+            .compare_exchange_weak(0 as _, ptr, success, failure)
+            .map(|_| ())
+            .map_err(|_| unsafe { *Box::from_raw(ptr) })
+    }
+
     /// Swaps the current value for the given value, returning the old one, if it exists.
     #[inline(always)]
     pub fn swap(&self, val: T, order: Ordering) -> Option<T> {
@@ -184,6 +213,31 @@ impl<T: Send + Sync> AtomicArcValue<T> {
         self.0.store_unchecked(Arc::new(val), order);
     }
 
+    /// Stores a value if no value has yet been stored. Uses compare_exchange under the hood.
+    ///
+    /// NOTE: This will always Box the value and, on failure, "unbox" the value.
+    #[inline(always)]
+    pub fn store_if_empty(&self, val: T, success: Ordering, failure: Ordering) -> Result<(), T> {
+        self.0
+            .store_if_empty(Arc::new(val), success, failure)
+            .map_err(|v| Arc::into_inner(v).unwrap())
+    }
+
+    /// Stores a value if no value has yet been stored. Uses compare_exchange_weak under the hood.
+    ///
+    /// NOTE: This will always Box the value and, on failure, "unbox" the value.
+    #[inline(always)]
+    pub fn store_if_empty_weak(
+        &self,
+        val: T,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<(), T> {
+        self.0
+            .store_if_empty_weak(Arc::new(val), success, failure)
+            .map_err(|v| Arc::into_inner(v).unwrap())
+    }
+
     /// Swaps the current value for the given value, returning the old one, if it exists.
     #[inline(always)]
     pub fn swap(&self, val: T, order: Ordering) -> Option<Arc<T>> {
@@ -259,6 +313,28 @@ impl<T: ?Sized + Send + Sync> AtomicArcValue<T> {
     #[inline(always)]
     pub unsafe fn store_arc_unchecked(&self, val: Arc<T>, order: Ordering) {
         self.0.store_unchecked(val, order)
+    }
+
+    /// Same as `AtomicArcValue::store_if_empty` but takes an `Arc<T>`.
+    #[inline(always)]
+    pub fn store_arc_if_empty(
+        &self,
+        val: Arc<T>,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<(), Arc<T>> {
+        self.0.store_if_empty(val, success, failure)
+    }
+
+    /// Same as `AtomicArcValue::store_if_empty_weak` but takes an `Arc<T>`.
+    #[inline(always)]
+    pub fn store_arc_if_empty_weak(
+        &self,
+        val: Arc<T>,
+        success: Ordering,
+        failure: Ordering,
+    ) -> Result<(), Arc<T>> {
+        self.0.store_if_empty_weak(val, success, failure)
     }
 
     /// Same as `AtomicArcValue::swap` but takes an `Arc<T>`.
@@ -503,6 +579,19 @@ mod test_single {
         assert_eq!(av.swap_arc(Arc::clone(&s2), Ordering::Relaxed), s1);
         av.store_arc(Arc::clone(&s3), Ordering::Relaxed);
         assert_eq!(av.swap_arc("".into(), Ordering::Relaxed), s3);
+    }
+
+    #[test]
+    fn store_if_empty() {
+        let av = AtomicValue::empty();
+        assert!(av
+            .store_if_empty(123, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok());
+        assert_eq!(
+            av.store_if_empty(456, Ordering::Relaxed, Ordering::Relaxed),
+            Err(456)
+        );
+        assert_eq!(av.load(Ordering::Relaxed), Some(123));
     }
 }
 
