@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"time"
 )
@@ -33,10 +34,19 @@ func ErrAs[T error](err error) bool {
 
 // ValOr returns the value pointed to by `ptr` or `or` if `ptr` is nil.
 func ValOr[T any](ptr *T, or T) T {
-	if ptr == nil {
+	if ptr != nil {
 		return *ptr
 	}
 	return or
+}
+
+// ValOrFunc returns the value pointed to by `ptr` or the return value
+// `orFunc`, which is only run if `ptr` is nil.
+func ValOrFunc[T any](ptr *T, orFunc func() T) T {
+	if ptr != nil {
+		return *ptr
+	}
+	return orFunc()
 }
 
 // ValOrDefault returns the value pointed to by `ptr` or the default (zero)
@@ -84,4 +94,27 @@ func TimestampToDay(i int64) int64 {
 // timestamp of the beginning of the day.
 func TimestampNanoToDay(i int64) int64 {
 	return i - i%NanosInDay
+}
+
+// DeferFunc is meant to be used in `defer` statements. The passed function(s)
+// will be run if `*shouldRun` is true at the time the function is executed
+// (which is usually at the end of a function due to using `defer`).
+// `shouldRun` should not be nil, otherwise, it will panic.
+func DeferFunc(shouldRun *bool, funcs ...func()) {
+	if *shouldRun {
+		for _, f := range funcs {
+			f()
+		}
+	}
+}
+
+// DeferClose works the same as DeferFunc but works with io.Closers. Errors
+// from called Close methods are ignored. If this is not desired, handle them
+// with new funcs using `DeferFunc`.
+func DeferClose(shouldRun *bool, closers ...io.Closer) {
+	if *shouldRun {
+		for _, c := range closers {
+			c.Close()
+		}
+	}
 }
