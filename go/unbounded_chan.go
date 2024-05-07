@@ -3,7 +3,6 @@ package utils
 import (
 	"container/list"
 	"errors"
-	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -20,8 +19,7 @@ var (
 // UChan is an unbounded channel.
 type UChan[T any] struct {
 	ch       chan T
-	buf      *list.List
-	bufMtx   sync.Mutex
+	buf      *Mutex[*list.List]
 	isClosed atomic.Bool
 }
 
@@ -30,8 +28,9 @@ type UChan[T any] struct {
 // faster at the cost of more space.
 func NewUChan[T any](l int) *UChan[T] {
 	return &UChan[T]{
-		ch:  make(chan T, l),
-		buf: list.New(),
+		ch: make(chan T, l),
+		//buf: list.New(),
+		buf: NewMutex[*list.List](list.New()),
 	}
 }
 
@@ -156,46 +155,63 @@ func (uc *UChan[T]) RecvChan() *Receiver[T] {
 }
 
 func (uc *UChan[T]) moveMsg() {
-	uc.bufMtx.Lock()
-	defer uc.bufMtx.Unlock()
-	if uc.buf.Len() == 0 {
-		return
-	}
-	e := uc.buf.Front()
-	uc.ch <- e.Value.(T)
-	uc.buf.Remove(e)
-	// If there are no more messages in the buffer and the UChan is closed, it's
-	// safe to close the chan
-	if uc.buf.Len() == 0 && uc.IsClosed() {
-		close(uc.ch)
-	}
+	uc.buf.Apply(func(lp **list.List) {
+		buf := *lp
+		if buf.Len() == 0 {
+			return
+		}
+		e := buf.Front()
+		uc.ch <- e.Value.(T)
+		buf.Remove(e)
+		// If there are no more messages in the buffer and the UChan is closed, it's
+		// safe to close the chan
+		if buf.Len() == 0 && uc.IsClosed() {
+			close(uc.ch)
+		}
+	})
 }
 
 // Send sends the value over the channel. This will never block until the
 // channel is received from, though it may be slower if many calls to Send are
-// made (due to locking).
+// made (due to locking). Returns false if the channel is closed.
 func (uc *UChan[T]) Send(val T) bool {
 	if uc.IsClosed() {
 		return false
 	}
-	uc.bufMtx.Lock()
-	defer uc.bufMtx.Unlock()
-	for e := uc.buf.Front(); e != nil; e = e.Next() {
-		select {
-		case uc.ch <- e.Value.(T):
-			tmp := e
-			e = e.Next()
-			uc.buf.Remove(tmp)
-		default:
-			uc.buf.PushBack(val)
-			return true
+	uc.send(val)
+	return true
+}
+
+func (uc *UChan[T]) send(val T) {
+	uc.buf.Apply(func(lp **list.List) {
+		buf := *lp
+		for e := buf.Front(); e != nil; {
+			select {
+			case uc.ch <- e.Value.(T):
+				tmp := e
+				e = e.Next()
+				buf.Remove(tmp)
+			default:
+				buf.PushBack(val)
+				return
+			}
 		}
+		select {
+		case uc.ch <- val:
+		default:
+			buf.PushBack(val)
+		}
+	})
+}
+
+// SendAndClose sends the value over the channel, closing the UChan in the
+// process. Returns false if the channel is already closed.
+func (uc *UChan[T]) SendAndClose(val T) bool {
+	if uc.isClosed.Swap(true) {
+		return false
 	}
-	select {
-	case uc.ch <- val:
-	default:
-		uc.buf.PushBack(val)
-	}
+	uc.send(val)
+	uc.tryCloseChan()
 	return true
 }
 
@@ -204,13 +220,18 @@ func (uc *UChan[T]) Close() bool {
 	if uc.isClosed.Swap(true) {
 		return false
 	}
-	uc.bufMtx.Lock()
-	defer uc.bufMtx.Unlock()
-	// Nothing more will be sent over the channel; it's safe to close
-	if uc.buf.Len() == 0 {
-		close(uc.ch)
-	}
+	uc.tryCloseChan()
 	return true
+}
+
+func (uc *UChan[T]) tryCloseChan() {
+	uc.buf.Apply(func(lp **list.List) {
+		buf := *lp
+		// Nothing more will be sent over the channel; it's safe to close
+		if buf.Len() == 0 {
+			close(uc.ch)
+		}
+	})
 }
 
 // IsClosed returns whether the channel is closed.
