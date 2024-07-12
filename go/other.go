@@ -3,10 +3,17 @@ package utils
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"os"
 	"time"
 )
+
+// Must panics if the error is not nil, otherwise, returns the value.
+func Must[T any](t T, err error) T {
+	if err != nil {
+		panic(err)
+	}
+	return t
+}
 
 // IsMarshalError returns whether the error is from calling Marshal or the
 // process of marshaling. Useful in cases like json.Encoder.Encode where the
@@ -50,9 +57,21 @@ func ValOrFunc[T any](ptr *T, orFunc func() T) T {
 }
 
 // ValOrDefault returns the value pointed to by `ptr` or the default (zero)
-// value.
+// value if `ptr` is nil.
 func ValOrDefault[T any](ptr *T) (t T) {
 	return ValOr(ptr, t)
+}
+
+// Or returns the first value that is not equal to the default value, returning
+// the default value if there is no value matching this criteria.
+func Or[T comparable](vals ...T) T {
+	var t T
+	for _, val := range vals {
+		if val != t {
+			return val
+		}
+	}
+	return t
 }
 
 // Appendflags are the flags used to open a file in append mode.
@@ -68,6 +87,15 @@ func NewT[T any](t T) *T {
 	ptr := new(T)
 	*ptr = t
 	return ptr
+}
+
+// MapPtr maps the value in a pointer to another type, returning a pointer to
+// the new value. If the passed pointer is nil, the function `f` is not called.
+func MapPtr[T, U any](t *T, f func(*T) *U) *U {
+	if t == nil {
+		return nil
+	}
+	return f(t)
 }
 
 // CurrentDay returns the current time with the hours, minutes, and seconds
@@ -94,27 +122,4 @@ func TimestampToDay(i int64) int64 {
 // timestamp of the beginning of the day.
 func TimestampNanoToDay(i int64) int64 {
 	return i - i%NanosInDay
-}
-
-// DeferFunc is meant to be used in `defer` statements. The passed function(s)
-// will be run if `*shouldRun` is true at the time the function is executed
-// (which is usually at the end of a function due to using `defer`).
-// `shouldRun` should not be nil, otherwise, it will panic.
-func DeferFunc(shouldRun *bool, funcs ...func()) {
-	if *shouldRun {
-		for _, f := range funcs {
-			f()
-		}
-	}
-}
-
-// DeferClose works the same as DeferFunc but works with io.Closers. Errors
-// from called Close methods are ignored. If this is not desired, handle them
-// with new funcs using `DeferFunc`.
-func DeferClose(shouldRun *bool, closers ...io.Closer) {
-	if *shouldRun {
-		for _, c := range closers {
-			c.Close()
-		}
-	}
 }

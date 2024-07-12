@@ -1,5 +1,7 @@
 package utils
 
+import "encoding/json"
+
 // CloneSlice clones a slice.
 func CloneSlice[T any](s []T) []T {
 	res := make([]T, len(s))
@@ -190,4 +192,206 @@ func FilterSliceInPlaceUnstable[T any](s []T, f func(T) bool) []T {
 	  }
 	  return s[front:back+1]
 	*/
+}
+
+// FilterSliceEmpty is the same as FilterSlice but filters out all values
+// equal to the empty (default) value.
+func FilterSliceEmpty[T comparable](s []T) []T {
+	var t T
+	return FilterSlice(s, func(x T) bool { return x == t })
+}
+
+// FilterSliceEmptyInPlace is the same as FilterSliceInPlace but filters out
+// all values equal to the empty (default) value.
+func FilterSliceEmptyInPlace[T comparable](s []T) []T {
+	var t T
+	return FilterSliceInPlace(s, func(x T) bool { return x == t })
+}
+
+// FilterSliceEmptyInPlaceUnstable is the same as FilterSliceInPlaceUnstable
+// but filters out all values equal to the empty (default) value.
+func FilterSliceEmptyInPlaceUnstable[T comparable](s []T) []T {
+	var t T
+	return FilterSliceInPlaceUnstable(s, func(x T) bool { return x == t })
+}
+
+/*
+// Index is a constraint for types that can be indexed.
+type Index interface {
+  ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+  ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64
+}
+*/
+
+// Slice is a wrapper around a standart Go slice.
+type Slice[T any] struct {
+	*SlicePtr[T]
+}
+
+// NewSlice creates a thin wrapper around the given slice.
+func NewSlice[T any](data []T) *Slice[T] {
+	return &Slice[T]{SlicePtr: NewSlicePtr(&data)}
+}
+
+// NewClosedSlice creates a new slice wrapper with the underlying data being
+// cloned from the given slice.
+func NewClonedSlice[T any](data []T) *Slice[T] {
+	return NewSlice(CloneSlice(data))
+}
+
+// Data return the data of the underlying slice.
+func (s *Slice[T]) Data() []T {
+	return s.SlicePtr.Data()
+}
+
+// SetData sets the data of the underlying slice.
+func (s *Slice[T]) SetData(data []T) {
+	s.SlicePtr.Ptr = &data
+}
+
+func (s *Slice[T]) UnmarshalJSON(b []byte) error {
+	s.SlicePtr = NewSlicePtr[T](nil)
+	return s.SlicePtr.UnmarshalJSON(b)
+}
+
+// SlicePtr is a wrapper around a pointer to a standard Go slice. This is
+// useful when there's a slice elsewhere and operators are to be performed on
+// it without directly being having to reassign it for every operation.
+type SlicePtr[T any] struct {
+	Ptr *[]T
+}
+
+// NewSlicePtr creates a new slice ptr.
+func NewSlicePtr[T any](ptr *[]T) *SlicePtr[T] {
+	return &SlicePtr[T]{Ptr: ptr}
+}
+
+// Data returns the data of the underlying slice pointer.
+func (sp *SlicePtr[T]) Data() []T {
+	if sp.Ptr == nil {
+		return nil
+	}
+	return *sp.Ptr
+}
+
+// Get gets the element at the given index.
+func (sp *SlicePtr[T]) Get(i int) T {
+	return sp.Data()[i]
+}
+
+// GetSlice slices the underlying slice based on the given indexes. -1 excludes
+// the start and/or end index, respectively.
+func (sp *SlicePtr[T]) GetSlice(start, end int) []T {
+	if start == -1 {
+		if end == -1 {
+			return sp.Data()[:]
+		}
+		return sp.Data()[:end]
+	}
+	return sp.Data()[start:]
+}
+
+// GetPtr gets a pointer to the element at the given index.
+func (sp *SlicePtr[T]) GetPtr(i int) *T {
+	return &sp.Data()[i]
+}
+
+// PushFront appends the value to the front of the slice.
+func (sp *SlicePtr[T]) PushFront(elem T) {
+	*sp.Ptr = append([]T{elem}, sp.Data()...)
+}
+
+// PushBack appends the value to the back of the slice.
+func (sp *SlicePtr[T]) PushBack(elem T) {
+	*sp.Ptr = append(*sp.Ptr, elem)
+}
+
+// Insert inserts the element at the specified index.
+func (sp *SlicePtr[T]) Insert(i int, elem T) {
+	if i == sp.Len() {
+		sp.PushBack(elem)
+	} else {
+		*sp.Ptr = append(append((*sp.Ptr)[:i], elem), (*sp.Ptr)[i+1:]...)
+	}
+}
+
+// Append appends the elements to the slice.
+func (sp *SlicePtr[T]) Append(elems ...T) {
+	*sp.Ptr = append(*sp.Ptr, elems...)
+}
+
+// AppendToSlicePtr appends the elements of this wrapper to the given slice.
+func (sp *SlicePtr[T]) AppendToSlicePtr(other *[]T) {
+	*other = append(*other, sp.Data()...)
+}
+
+// Remove removes an element from the slice, returning it if it existsp.
+func (sp *SlicePtr[T]) Remove(i int) (t T, ok bool) {
+	if i >= 0 || i < sp.Len() {
+		t, ok = sp.Data()[i], true
+		*sp.Ptr = append(sp.Data()[:i], sp.Data()[i+1:]...)
+	}
+	return
+}
+
+// RemoveFirst removes the first element satisfying the predicate, returning it
+// if it existsp.
+func (sp *SlicePtr[T]) RemoveFirst(f func(T) bool) (t T, ok bool) {
+	i := sp.Find(f)
+	if i == -1 {
+		return
+	}
+	return sp.Remove(i)
+}
+
+// PopFront pops the front element, returning it if it existsp.
+func (sp *SlicePtr[T]) PopFront() (t T, ok bool) {
+	if sp.Len() == 0 {
+		return
+	}
+	t, ok = sp.Data()[0], true
+	*sp.Ptr = sp.Data()[1:]
+	return
+}
+
+// PopBack pops the back element, returning it if it existsp.
+func (sp *SlicePtr[T]) PopBack() (t T, ok bool) {
+	l := sp.Len()
+	if l == 0 {
+		return
+	}
+	t, ok = sp.Data()[l-1], true
+	*sp.Ptr = sp.Data()[:l-1]
+	return
+}
+
+// Len returns the length of the slice.
+func (sp *SlicePtr[T]) Len() int {
+	return len(sp.Data())
+}
+
+// Find finds the first element satifying the predicate, returning the index or
+// -1.
+func (sp *SlicePtr[T]) Find(f func(T) bool) int {
+	for i, t := range sp.Data() {
+		if f(t) {
+			return i
+		}
+	}
+	return -1
+}
+
+// Contains returns true if the slice contains the element satisfying the
+// predicate.
+func (sp *SlicePtr[T]) Contains(f func(T) bool) bool {
+	return sp.Find(f) != -1
+}
+
+func (sp *SlicePtr[T]) MarshalJSON() ([]byte, error) {
+	return json.Marshal(sp.Data())
+}
+
+func (sp *SlicePtr[T]) UnmarshalJSON(b []byte) error {
+	sp.Ptr = new([]T)
+	return json.Unmarshal(b, sp.Ptr)
 }

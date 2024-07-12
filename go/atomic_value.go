@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"reflect"
 	"sync/atomic"
 )
 
@@ -89,4 +92,34 @@ func (a *AValue[T]) CompareAndSwap(oldV, newV T) bool {
 // true if stored.
 func (a *AValue[T]) StoreIfEmpty(t T) bool {
 	return a.v.CompareAndSwap(nil, t)
+}
+
+func (a *AValue[T]) MarshalJSON() ([]byte, error) {
+	v, ok := a.LoadSafe()
+	if !ok {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(v)
+}
+
+func (a *AValue[T]) UnmarshalJSON(data []byte) (err error) {
+	if bytes.Equal(data, []byte("null")) {
+		if _, ok := a.LoadSafe(); ok {
+			var t T
+			a.Store(t)
+		}
+		return nil
+	}
+	typ := reflect.TypeOf((*T)(nil)).Elem()
+	if kind := typ.Kind(); kind == reflect.Pointer {
+		val := reflect.New(typ.Elem())
+		err = json.Unmarshal(data, val.Interface())
+		a.v.Store(val.Interface())
+		return
+	}
+
+	valPtr := reflect.New(typ)
+	err = json.Unmarshal(data, valPtr.Interface())
+	a.v.Store(valPtr.Elem().Interface())
+	return
 }

@@ -1,6 +1,10 @@
 package utils
 
-import "sync"
+import (
+	"encoding/json"
+	"reflect"
+	"sync"
+)
 
 // Locker represents an object that can be locked, attempted to be locked, and
 // unlocked.
@@ -87,6 +91,32 @@ func (m *Mutex[T]) TryApply(f func(*T)) bool {
 	return locked
 }
 
+func (m *Mutex[T]) MarshalJSON() ([]byte, error) {
+	m.Lock()
+	defer m.Unlock()
+	return json.Marshal(m.data)
+}
+
+func (m *Mutex[T]) UnmarshalJSON(data []byte) (err error) {
+	m.Lock()
+	defer m.Unlock()
+	typ := reflect.TypeOf((*T)(nil)).Elem()
+	if kind := typ.Kind(); kind == reflect.Pointer {
+		val := reflect.ValueOf(m.data)
+		if val.IsNil() {
+			val = reflect.New(typ.Elem())
+		}
+		err = json.Unmarshal(data, val.Interface())
+		m.data = val.Interface().(T)
+		return
+	} else if kind == reflect.Interface {
+		return json.Unmarshal(data, reflect.ValueOf(m.data).Interface())
+	}
+	valPtr := reflect.ValueOf(&m.data)
+	err = json.Unmarshal(data, valPtr.Interface())
+	return
+}
+
 // RWMutex is a wrapper around a read-wite mutex and some data (the mutex
 // "owns" the data).
 type RWMutex[T any] struct {
@@ -171,4 +201,30 @@ func (m *RWMutex[T]) TryRApply(f func(*T)) bool {
 		m.Unlock()
 	}
 	return locked
+}
+
+func (m *RWMutex[T]) MarshalJSON() ([]byte, error) {
+	m.RLock()
+	defer m.RUnlock()
+	return json.Marshal(m.data)
+}
+
+func (m *RWMutex[T]) UnmarshalJSON(data []byte) (err error) {
+	m.Lock()
+	defer m.Unlock()
+	typ := reflect.TypeOf((*T)(nil)).Elem()
+	if kind := typ.Kind(); kind == reflect.Pointer {
+		val := reflect.ValueOf(m.data)
+		if val.IsNil() {
+			val = reflect.New(typ.Elem())
+		}
+		err = json.Unmarshal(data, val.Interface())
+		m.data = val.Interface().(T)
+		return
+	} else if kind == reflect.Interface {
+		return json.Unmarshal(data, reflect.ValueOf(m.data).Interface())
+	}
+	valPtr := reflect.ValueOf(&m.data)
+	err = json.Unmarshal(data, valPtr.Interface())
+	return
 }
