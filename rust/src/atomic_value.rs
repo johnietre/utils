@@ -1,5 +1,7 @@
-use std::sync::{atomic::AtomicPtr, Arc};
 pub use std::sync::atomic::Ordering;
+use std::sync::{atomic::AtomicPtr, Arc};
+
+pub type AV<T> = AtomicValue<T>;
 
 /// A container to safely share values atomically between threads.
 /// The underlying value is dropped when the `AtomicValue` is dropped, if there was a value.
@@ -207,6 +209,8 @@ impl<T> Drop for AtomicValue<T> {
         }
     }
 }
+
+pub type AAV<T> = AtomicArcValue<T>;
 
 /// A wrapper, with accompanying methods, for `AtomicValue<Arc<T>>`.
 ///
@@ -428,6 +432,8 @@ impl<T: Send + Sync> Default for AtomicArcValue<T> {
     }
 }
 
+pub type NEAV<T> = NEAtomicValue<T>;
+
 /// The non-empty (NE) version of `AtomicValue<T>`, a container to safely share values atomically
 /// between threads.
 /// The value is (should) never empty, thus, all operations are done under that assumption and no
@@ -502,6 +508,8 @@ impl<T: Sync + Clone + Default> Default for NEAtomicValue<T> {
         Self::new(T::default())
     }
 }
+
+pub type NEAAV<T> = NEAtomicArcValue<T>;
 
 /// Non-empty (NE) version of `AtomicArcValue`. Follows the same rules as `NEAtomicValue`.
 #[repr(transparent)]
