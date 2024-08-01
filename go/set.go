@@ -65,13 +65,37 @@ func (s *Set[T]) Clone() *Set[T] {
 	return &Set[T]{m: CloneMap(s.m)}
 }
 
-// IntoMap copies the values of the set into the keys of the given map. Panics
-// if `m` is nil.
-func (s *Set[T]) IntoMap(m map[T]Unit) {
+// CloneIntoMap copies the values of the set into the keys of the given map.
+// Panics if `m` is nil.
+func (s *Set[T]) CloneIntoMap(m map[T]Unit) {
 	CloneMapInto(m, s.m)
 }
 
-// ToMap returns a new map with the keys set to the values of the set.
-func (s *Set[T]) ToMap() map[T]Unit {
+// ToGoMap returns a new map with the keys set to the values of the set.
+func (s *Set[T]) ToGoMap() map[T]Unit {
 	return CloneMap(s.m)
+}
+
+// ToMap returns a new Map with the kews set to the values of the set.
+func (s *Set[T]) ToMap() *Map[T, Unit] {
+	return MapFromMap(s.ToGoMap())
+}
+
+// AsMap returns a Map that wrapper the Set's inner map.
+func (s *Set[T]) AsMap() *Map[T, Unit] {
+	return &Map[T, Unit]{m: s.m}
+}
+
+// ToSlice returns the Set as a go slice.
+func (s *Set[T]) ToSlice() []T {
+	slice := make([]T, 0, s.Len())
+	for t := range s.m {
+		slice = append(slice, t)
+	}
+	return slice
+}
+
+// Inner returns the inner go map.
+func (s *Set[T]) Inner() map[T]Unit {
+	return s.m
 }
