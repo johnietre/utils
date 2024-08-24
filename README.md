@@ -16,3 +16,4 @@ Just some utilities that I often find myself wanting and recreating in various l
 - [ ] Change Error field in ErrorValue from Error to Err?
 - [ ] Func to create listener that has REUSEADDR set
 - [ ] Map maps, filters, etc.
+    - [ ] Create Map, Set, Slice with capacity

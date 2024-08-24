@@ -50,10 +50,15 @@ function Base.show(io::IO, opt::Option{T}) where {T}
     end
 end
 
-@kwdef mutable struct Result{T, E}
+mutable struct Result{T, E}
     value::Union{T, Nothing}
     err::Union{E, Nothing}
 end
+
+Result{T, E}(;
+    value::Union{T, Nothing}=nothing,
+    err::Union{E, Nothing}=nothing,
+) where {T, E} = Result{T, E}(value, err)
 
 function takevalue!(res::Result{T, E})::Union{T, Nothing} where {T, E}
     if isok(res)
@@ -108,6 +113,17 @@ function Base.show(io::IO, res::Result{T, E}) where {T, E}
         write(io, "Partial(Value=$(res.value) | Err=$(res.err))")
     else
         write(io, "Empty")
+    end
+end
+
+macro catchres(ex)
+    quote
+        try
+            v = $(esc(ex))
+            Result{typeof(v), Exception}(value=v)
+        catch e
+            Result{Nothing, Exception}(nothing, e)
+        end
     end
 end
 

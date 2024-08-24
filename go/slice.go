@@ -1,6 +1,9 @@
 package utils
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"sort"
+)
 
 // CloneSlice clones a slice.
 func CloneSlice[T any](s []T) []T {
@@ -274,26 +277,76 @@ func (sp *SlicePtr[T]) Data() []T {
 	return *sp.Ptr
 }
 
-// Get gets the element at the given index.
+// Get gets the element at the given index. Panics if the index is out of
+// bounds.
 func (sp *SlicePtr[T]) Get(i int) T {
 	return sp.Data()[i]
 }
 
 // GetSlice slices the underlying slice based on the given indexes. -1 excludes
-// the start and/or end index, respectively.
+// the start and/or end index, respectively. Panics if any indexes are out of
+// bounds.
 func (sp *SlicePtr[T]) GetSlice(start, end int) []T {
+	// TODO: more than likely unneeded and can just set start to 0 and end to the
+	// length of the slice.
 	if start == -1 {
 		if end == -1 {
 			return sp.Data()[:]
 		}
 		return sp.Data()[:end]
+	} else if end == -1 {
+		return sp.Data()[start:]
 	}
-	return sp.Data()[start:]
+	return sp.Data()[start:end]
 }
 
-// GetPtr gets a pointer to the element at the given index.
+// GetPtr gets a pointer to the element at the given index. Panics if the
+// index is out of bounds.
 func (sp *SlicePtr[T]) GetPtr(i int) *T {
 	return &sp.Data()[i]
+}
+
+// GetSafe attempts to get the element at the given index, returning the
+// default value and false if the index is out of bounds.
+func (sp *SlicePtr[T]) GetSafe(i int) (t T, ok bool) {
+	if i < sp.Len() && i >= 0 {
+		t, ok = sp.Data()[i], true
+	}
+	return
+}
+
+// GetSliceSafe slices the underlying slice based on the given indexes. -1
+// excludes the start and/or end index, respectively. If any of the indexes are
+// out of bounds, a nil slice, along with false, is returned.
+func (sp *SlicePtr[T]) GetSliceSafe(start, end int) ([]T, bool) {
+	if start > sp.Len() || start < -1 || end > sp.Len() || end < -1 {
+		return nil, false
+	}
+	return sp.GetSlice(start, end), true
+}
+
+// GetSliceNil functions the same as GetSliceSafe, but without returning a
+// bool.
+func (sp *SlicePtr[T]) GetSliceNil(start, end int) []T {
+	s, _ := sp.GetSliceSafe(start, end)
+	return s
+}
+
+// GetPtrSafe attempts to get a pointer to the element at the given index.
+// Returns nil, false if the index is out of bounds.
+func (sp *SlicePtr[T]) GetPtrSafe(i int) (tp *T, ok bool) {
+	if i < sp.Len() && i >= 0 {
+		tp, ok = &sp.Data()[i], true
+	}
+	return
+}
+
+// GetPtrNil functions the same as GetPtrSafe, but without returning a bool.
+func (sp *SlicePtr[T]) GetPtrNil(i int) *T {
+	if i < sp.Len() && i >= 0 {
+		return &sp.Data()[i]
+	}
+	return nil
 }
 
 // PushFront appends the value to the front of the slice.
@@ -325,7 +378,7 @@ func (sp *SlicePtr[T]) AppendToSlicePtr(other *[]T) {
 	*other = append(*other, sp.Data()...)
 }
 
-// Remove removes an element from the slice, returning it if it existsp.
+// Remove removes an element from the slice, returning it if it exists.
 func (sp *SlicePtr[T]) Remove(i int) (t T, ok bool) {
 	if i >= 0 || i < sp.Len() {
 		t, ok = sp.Data()[i], true
@@ -335,16 +388,16 @@ func (sp *SlicePtr[T]) Remove(i int) (t T, ok bool) {
 }
 
 // RemoveFirst removes the first element satisfying the predicate, returning it
-// if it existsp.
+// if it exists.
 func (sp *SlicePtr[T]) RemoveFirst(f func(T) bool) (t T, ok bool) {
-	i := sp.Find(f)
+	i := sp.Index(f)
 	if i == -1 {
 		return
 	}
 	return sp.Remove(i)
 }
 
-// PopFront pops the front element, returning it if it existsp.
+// PopFront pops the front element, returning it if it exists.
 func (sp *SlicePtr[T]) PopFront() (t T, ok bool) {
 	if sp.Len() == 0 {
 		return
@@ -354,7 +407,7 @@ func (sp *SlicePtr[T]) PopFront() (t T, ok bool) {
 	return
 }
 
-// PopBack pops the back element, returning it if it existsp.
+// PopBack pops the back element, returning it if it exists.
 func (sp *SlicePtr[T]) PopBack() (t T, ok bool) {
 	l := sp.Len()
 	if l == 0 {
@@ -370,11 +423,22 @@ func (sp *SlicePtr[T]) Len() int {
 	return len(sp.Data())
 }
 
-// Find finds the first element satifying the predicate, returning the index or
-// -1.
-func (sp *SlicePtr[T]) Find(f func(T) bool) int {
+// Index finds the first element satifying the predicate, returning the index
+// or -1.
+func (sp *SlicePtr[T]) Index(f func(T) bool) int {
 	for i, t := range sp.Data() {
 		if f(t) {
+			return i
+		}
+	}
+	return -1
+}
+
+// IndexLast finds the last element satifying the predicate, returning the
+// index or -1.
+func (sp *SlicePtr[T]) IndexLast(f func(T) bool) int {
+	for i := sp.Len() - 1; i >= 0; i-- {
+		if f(sp.Get(i)) {
 			return i
 		}
 	}
@@ -384,7 +448,26 @@ func (sp *SlicePtr[T]) Find(f func(T) bool) int {
 // Contains returns true if the slice contains the element satisfying the
 // predicate.
 func (sp *SlicePtr[T]) Contains(f func(T) bool) bool {
-	return sp.Find(f) != -1
+	return sp.Index(f) != -1
+}
+
+// Eq returns whether the given slice is equal to the caller using the `eq`
+// func. Returns true if both slices are (by any definition) empty.
+func (sp *SlicePtr[T]) Eq(s []T, eq func(t1, t2 T) bool) bool {
+	if sp.Len() != len(s) {
+		return false
+	}
+	for i := 0; i < sp.Len(); i++ {
+		if !eq(sp.Get(i), s[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// Sort sorts the slice using the given `less` function.
+func (sp *SlicePtr[T]) Sort(less func(i, j int) bool) {
+	sort.Slice(sp.Data(), less)
 }
 
 func (sp *SlicePtr[T]) MarshalJSON() ([]byte, error) {

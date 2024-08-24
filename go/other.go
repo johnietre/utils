@@ -123,3 +123,13 @@ func TimestampToDay(i int64) int64 {
 func TimestampNanoToDay(i int64) int64 {
 	return i - i%NanosInDay
 }
+
+// First discards the second value and returns the first.
+func First[T any, U any](t T, u U) T {
+	return t
+}
+
+// Second discards the first value and returns the second.
+func Second[T any, U any](t T, u U) U {
+	return u
+}
