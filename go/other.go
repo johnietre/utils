@@ -133,3 +133,20 @@ func First[T any, U any](t T, u U) T {
 func Second[T any, U any](t T, u U) U {
 	return u
 }
+
+// EnvFileOrVar attempts to read a value from a file specified by an
+// environment variable. The name of the environment variable for the file is
+// gotten by adding "_FILE" to the end of the passed envName. If the read is
+// successful, the resulting value is trimmed of its spaces. If there is an
+// error reading the file, the value associated with the passed envName is
+// returned along with the error from attempting to read the file.
+func EnvFileOrVar(envName string) (string, error) {
+	envFileName := envName + "_FILE"
+	filename := os.Getenv(envFileName)
+	bytes, err := os.ReadFile(filename)
+	val := strings.TrimSpace(string(bytes))
+	if err != nil {
+		val = os.Getenv(envName)
+	}
+	return val, err
+}
