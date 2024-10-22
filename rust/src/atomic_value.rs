@@ -495,7 +495,7 @@ impl<T: Sync + Clone> NEAtomicValue<T> {
 }
 
 impl<T: Sync + Copy> NEAtomicValue<T> {
-    /// Attempts to load and copy the value stored, returning None if no value has been stored.
+    /// Loads and copies the value stored, returning it.
     #[inline(always)]
     pub fn load_copied(&self, order: Ordering) -> T {
         unsafe { self.0.load_copied_unchecked(order) }

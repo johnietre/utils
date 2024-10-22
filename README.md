@@ -4,7 +4,16 @@ Just some utilities that I often find myself wanting and recreating in various l
 # TODO
 
 ## Rust
+- [ ] die macro
+- [ ] OrDie trait for Result/Option
 - [ ] MapValue for any item that takes an immutable value and allows mutation in a closure, returning the new value.
+- [ ] presult other io and common things (e.g., tokio and futures respective Read/Write)
+- [ ] Docs
+    - [x] presult
+        - [ ] pio
+- [ ] Tests
+    - [ ] presult
+        - [ ] pio
 
 ## Go
 - [ ] Tests
