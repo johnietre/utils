@@ -1,8 +1,11 @@
 // TODO: docs
 // TODO: tests
 use super::prelude::*;
+use std::borrow::{Borrow, BorrowMut};
+use std::convert::{AsMut, AsRef};
 use std::fmt;
-use std::io::{self, prelude::*, Error as IoError, ErrorKind};
+use std::io::{self, prelude::*, Error as IoError, ErrorKind, Result as IoRes};
+use std::ops::{Deref, DerefMut};
 
 pub type IoPRes<T> = PResult<T, IoError>;
 
@@ -135,7 +138,7 @@ pub trait PartialWrite: Write {
             res: IoPRes<usize>,
         }
 
-        impl<T: Write + ?Sized> fmt::Write for Adapter<'_, T> {
+        impl<T: PartialWrite + ?Sized> fmt::Write for Adapter<'_, T> {
             fn write_str(&mut self, s: &str) -> fmt::Result {
                 let res = self.inner.pwrite_all(s.as_bytes());
                 self.res = res;
@@ -166,11 +169,103 @@ pub trait PartialWrite: Write {
     }
 }
 
-pub mod default_impls {
-    use super::*;
-    impl<R: Read> PartialRead for R {}
-    impl<W: Write> PartialWrite for W {}
+#[repr(transparent)]
+pub struct Adapter<T>(T);
+
+impl<T> Adapter<T> {
+    pub fn new(t: T) -> Self {
+        Self(t)
+    }
+
+    pub fn into_inner(Self(inner): Self) -> T {
+        inner
+    }
 }
+
+impl<T> Deref for Adapter<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Adapter<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> Borrow<T> for Adapter<T> {
+    fn borrow(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> BorrowMut<T> for Adapter<T> {
+    fn borrow_mut(&mut self) -> &mut T {
+        &mut self.0
+    }
+}
+
+impl<T> AsRef<T> for Adapter<T> {
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> AsMut<T> for Adapter<T> {
+    fn as_mut(&mut self) -> &mut T {
+        &mut self.0
+    }
+}
+
+impl<T: Read> Read for Adapter<T> {
+    fn read(&mut self, buf: &mut [u8]) -> IoRes<usize> {
+        self.0.read(buf)
+    }
+
+    fn read_vectored(&mut self, bufs: &mut [io::IoSliceMut<'_>]) -> IoRes<usize> {
+        self.0.read_vectored(bufs)
+    }
+
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> IoRes<usize> {
+        self.0.read_to_end(buf)
+    }
+
+    fn read_to_string(&mut self, buf: &mut String) -> IoRes<usize> {
+        self.0.read_to_string(buf)
+    }
+
+    fn read_exact(&mut self, buf: &mut [u8]) -> IoRes<()> {
+        self.0.read_exact(buf)
+    }
+}
+
+impl<T: Write> Write for Adapter<T> {
+    fn write(&mut self, buf: &[u8]) -> IoRes<usize> {
+        self.0.write(buf)
+    }
+
+    fn flush(&mut self) -> IoRes<()> {
+        self.0.flush()
+    }
+
+    fn write_vectored(&mut self, bufs: &[io::IoSlice<'_>]) -> IoRes<usize> {
+        self.0.write_vectored(bufs)
+    }
+
+    fn write_all(&mut self, buf: &[u8]) -> IoRes<()> {
+        self.0.write_all(buf)
+    }
+
+    fn write_fmt(&mut self, fmt: fmt::Arguments<'_>) -> IoRes<()> {
+        self.0.write_fmt(fmt)
+    }
+}
+
+impl<T: Read> PartialRead for Adapter<T> {}
+impl<T: Write> PartialWrite for Adapter<T> {}
 
 pub mod prelude {
     pub use super::{PartialRead, PartialWrite};
