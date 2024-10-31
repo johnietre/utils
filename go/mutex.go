@@ -76,8 +76,8 @@ func (m *Mutex[T]) Unlock() {
 // Apply locks the mutex and calls the passed function with a pointer to the
 // data.
 func (m *Mutex[T]) Apply(f func(*T)) {
+	defer m.Unlock()
 	f(m.Lock())
-	m.Unlock()
 }
 
 // TryApply attempts to lock the mutex and call the passed function with a
@@ -85,8 +85,8 @@ func (m *Mutex[T]) Apply(f func(*T)) {
 func (m *Mutex[T]) TryApply(f func(*T)) bool {
 	data, locked := m.TryLock()
 	if locked {
+		defer m.Unlock()
 		f(data)
-		m.Unlock()
 	}
 	return locked
 }
@@ -169,8 +169,8 @@ func (m *RWMutex[T]) RUnlock() {
 // Apply locks the mutex and calls the passed function with a pointer to the
 // data.
 func (m *RWMutex[T]) Apply(f func(*T)) {
+	defer m.Unlock()
 	f(m.Lock())
-	m.Unlock()
 }
 
 // TryApply attempts to lock the mutex and call the passed function with a
@@ -178,8 +178,8 @@ func (m *RWMutex[T]) Apply(f func(*T)) {
 func (m *RWMutex[T]) TryApply(f func(*T)) bool {
 	data, locked := m.TryLock()
 	if locked {
+		defer m.Unlock()
 		f(data)
-		m.Unlock()
 	}
 	return locked
 }
@@ -187,8 +187,8 @@ func (m *RWMutex[T]) TryApply(f func(*T)) bool {
 // RApply read locks the mutex and calls the passed function with a pointer to
 // the data. The data should not be mutated.
 func (m *RWMutex[T]) RApply(f func(*T)) {
+	defer m.Unlock()
 	f(m.Lock())
-	m.Unlock()
 }
 
 // TryRApply attempts to read lock the mutex and call the passed function with
@@ -197,8 +197,8 @@ func (m *RWMutex[T]) RApply(f func(*T)) {
 func (m *RWMutex[T]) TryRApply(f func(*T)) bool {
 	data, locked := m.TryLock()
 	if locked {
+		defer m.Unlock()
 		f(data)
-		m.Unlock()
 	}
 	return locked
 }
