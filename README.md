@@ -4,9 +4,11 @@ Just some utilities that I often find myself wanting and recreating in various l
 # TODO
 
 ## Rust
-- [ ] die macro
-- [ ] OrDie trait for Result/Option
-- [ ] MapValue for any item that takes an immutable value and allows mutation in a closure, returning the new value.
+- [X] die macro
+- [X] OrDie trait for Result/Option
+    - [ ] PResult
+- [X] MapValue for any item that takes an immutable value and allows mutation in a closure, returning the new value.
+    - [ ] Tests
 - [ ] presult other io and common things (e.g., tokio and futures respective Read/Write)
 - [ ] Docs
     - [x] presult
@@ -14,12 +16,15 @@ Just some utilities that I often find myself wanting and recreating in various l
 - [ ] Tests
     - [ ] presult
         - [ ] pio
+    - [ ] OrDie
 
 ## Go
 - [ ] Tests
+    - [ ] Use black box testing?
 - [x] DeferedCloser to add close funcs to possibly defer (based on DeferClose)
 - [x] DeferedFunc to add funcs to possibly defer (based on DeferFunc)
 - [x] Slice and SlicePtr wrapper structs
+    - [ ] Slice First/Last funcs
 - [ ] Various encodings (e.g., JSON) for Mutexes and AValue
     - [x] (Un)MarshalJSON
 - [ ] Change Error field in ErrorValue from Error to Err?

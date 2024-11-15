@@ -485,6 +485,16 @@ impl<T, E> PResult<T, E> {
         self.as_mut().map(|t| t.deref_mut())
     }
 
+    /// Convers from `PResult<T, E>` to `PResult<E, T>`.
+    #[inline]
+    pub fn swap_val_err(self) -> PResult<E, T> {
+        match self {
+            POk(t) => PErr(t),
+            PPartial(t, e) => PPartial(e, t),
+            PErr(e) => POk(e),
+        }
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Iterator constructors
     ///////////////////////////////////////////////////////////////////////////
@@ -1249,6 +1259,46 @@ impl<'a, T, E> IntoIterator for &'a mut PResult<T, E> {
         self.iter_mut()
     }
 }
+
+/*
+impl<T, E> crate::die::OrDie<T> for PResult<T, E> {
+    #[inline]
+    fn or_die_code_msg(self, code: i32, msg: &str) -> T {
+        match self {
+            POk(t) => t,
+            PPartial(_, e) | PErr(e) => {
+                eprintln!("{msg}: {e:?}");
+                exit(code)
+            }
+        }
+    }
+
+    #[inline]
+    fn or_die(self) -> T {
+        self.or_die_code(1)
+    }
+
+    #[inline]
+    fn or_die_code(self, code: i32) -> T {
+        match self {
+            POk(t) => t,
+            PPartial(_, e) => {
+                eprintln!("called `PResult::or_die()` on an `PPartial` value");
+                exit(code)
+            }
+            PErr(e) => {
+                eprintln!("called `PResult::or_die()` on an `PErr` value");
+                exit(code)
+            }
+        }
+    }
+
+    #[inline]
+    fn or_die_msg(self, msg: &str) -> T {
+        self.or_die_code_msg(1, msg)
+    }
+}
+*/
 
 ///////////////////////////////////////////////////////////////////////////
 // The PResult Iterators

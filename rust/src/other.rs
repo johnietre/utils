@@ -1,6 +1,7 @@
 pub use std::io::{self, prelude::*, stdin};
 use std::str::FromStr;
 
+/// See [`get_input`]. Does not lock stdin.
 pub fn get_stdin_input<T: FromStr>(prompt: &str) -> io::Result<T> {
     if prompt != "" {
         print!("{prompt}");
@@ -15,6 +16,9 @@ pub fn get_stdin_input<T: FromStr>(prompt: &str) -> io::Result<T> {
     }
 }
 
+/// Gets a line of input from the given buf read implementor, printing the prompt if passed. The
+/// line is then trimmed and the type parameter passed is attempted to be constructed. Loops until
+/// a valid value is passed (or an error occurs). The prompt is only ever printed once.
 pub fn get_input<T: FromStr>(prompt: &str, reader: &mut impl BufRead) -> io::Result<T> {
     if prompt != "" {
         print!("{prompt}");
@@ -26,6 +30,14 @@ pub fn get_input<T: FromStr>(prompt: &str, reader: &mut impl BufRead) -> io::Res
         if let Ok(t) = line.trim().parse() {
             break Ok(t);
         }
+    }
+}
+
+/// Converts a `Result<T, E>` into a `Result<E, T>`.
+pub fn swap_result<T, E>(res: Result<T, E>) -> Result<E, T> {
+    match res {
+        Ok(t) => Err(t),
+        Err(e) => Ok(e),
     }
 }
 
