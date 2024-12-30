@@ -368,6 +368,26 @@ impl<T, E> PResult<T, E> {
     }
     */
 
+    /// Attempts to join the two `PResult` into a partial ([`PPartial`]). Succeeds if one is
+    /// [`POk`] and the other is [`PErr`]. Fails, returning `Err((self, other))` if they are the
+    /// same variant or either is [`PPartial`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use utils::presult::prelude::*;
+    ///
+    /// let ok: PResult<i32, i32> = POk(3);
+    /// let err: PResult<i32, i32> = PErr(-3);
+    /// let part: PResult<i32, i32> = PPartial(3, -3);
+    ///
+    /// assert_eq!(ok.try_join_exclusive(err), Ok(part));
+    /// assert_eq!(err.try_join_exclusive(ok), Ok(part));
+    ///
+    /// assert_eq!(ok.try_join_exclusive(ok), Err((ok, ok)));
+    /// assert_eq!(err.try_join_exclusive(err), Err((err, err)));
+    /// assert_eq!(ok.try_join_exclusive(part), Err((ok, part)));
+    /// ```
     #[inline]
     pub fn try_join_exclusive(self, other: Self) -> Result<Self, (Self, Self)> {
         match (self, other) {
@@ -1226,6 +1246,16 @@ impl<T, E> From<PartialResult<T, E>> for PResult<T, E> {
             Ok((t, None)) => POk(t),
             Ok((t, Some(e))) => PPartial(t, e),
             Err(e) => PErr(e),
+        }
+    }
+}
+
+impl<T, E> From<PResult<T, E>> for (Option<T>, Option<E>) {
+    fn from(pres: PResult<T, E>) -> Self {
+        match pres {
+            POk(t) => (Some(t), None),
+            PPartial(t, e) => (Some(t), Some(e)),
+            PErr(e) => (None, Some(e)),
         }
     }
 }
