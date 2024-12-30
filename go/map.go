@@ -10,6 +10,11 @@ func NewMap[K comparable, V any]() *Map[K, V] {
 	return &Map[K, V]{m: make(map[K]V)}
 }
 
+// MapWithLen creates a new map with the specified length.
+func MapWithLen[K comparable, V any](l int) *Map[K, V] {
+	return MapFromMap(make(map[K]V, l))
+}
+
 // MapFromMap creates a new Map from the given Map.
 func MapFromMap[K comparable, V any](m map[K]V) *Map[K, V] {
 	if m == nil {
@@ -109,6 +114,76 @@ func (m *Map[K, V]) Range(f func(K, V) bool) {
 	for k, v := range m.m {
 		if !f(k, v) {
 			return
+		}
+	}
+}
+
+// Filter iterates over each key/value pair in random order, removing items not
+// satisfying the given predicate.
+func (m *Map[K, V]) Filter(f func(K, V) bool) {
+	for k, v := range m.m {
+		if !f(k, v) {
+			delete(m.m, k)
+		}
+	}
+}
+
+// FilterKeys iterates over each key in random order, removing items not
+// satisfying the given predicate.
+func (m *Map[K, V]) FilterKeys(f func(K) bool) {
+	for k := range m.m {
+		if !f(k) {
+			delete(m.m, k)
+		}
+	}
+}
+
+// FilterValues iterates over each value in random order, removing items not
+// satisfying the given predicate.
+func (m *Map[K, V]) FilterValues(f func(V) bool) {
+	for k, v := range m.m {
+		if !f(v) {
+			delete(m.m, k)
+		}
+	}
+}
+
+// Map iterates over each key/value pair in random order, mapping the values to
+// the the new values.
+func (m *Map[K, V]) Map(f func(K, V) V) {
+	for k, v := range m.m {
+		m.m[k] = f(k, v)
+	}
+}
+
+// MapValues iterates over each value in random order, mapping the values to
+// the the new values.
+func (m *Map[K, V]) MapValues(f func(V) V) {
+	for k, v := range m.m {
+		m.m[k] = f(v)
+	}
+}
+
+// FilterMap iterates over each key/value pair in random order, retaining and
+// mapping the values that satisfy the predicate.
+func (m *Map[K, V]) FilterMap(f func(K, V) (V, bool)) {
+	for k, v := range m.m {
+		if v2, ok := f(k, v); ok {
+			m.m[k] = v2
+		} else {
+			delete(m.m, k)
+		}
+	}
+}
+
+// FilterMapValues iterates over each value in random order, retaining and
+// mapping the values that satisfy the predicate.
+func (m *Map[K, V]) FilterMapValues(f func(V) (V, bool)) {
+	for k, v := range m.m {
+		if v2, ok := f(v); ok {
+			m.m[k] = v2
+		} else {
+			delete(m.m, k)
 		}
 	}
 }

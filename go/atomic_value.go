@@ -35,6 +35,45 @@ func (ev ErrorValue) Unwrap() error {
 	return ev.Error
 }
 
+// ErrVal is used as a wrapper for the error interface that serves as a
+// concrete type to satisfy atomic.Value when storing different errors. This
+// is the second version of `ErrorValue` in that it changes the name of the
+// error it holds from `Error` to `Err` in order to comform with the `error`
+// interface.
+type ErrVal struct {
+	// Err is the internal error.
+	Err error
+}
+
+// NewErrVal constructs a new error value with the given error.
+func NewErrVal(err error) ErrVal {
+	return ErrVal{Err: err}
+}
+
+// Error implements errors.Error.
+func (ev ErrVal) Error() string {
+	// NOTE: is this correct?
+	if ev.Err == nil {
+		return ""
+	}
+	return ev.Err.Error()
+}
+
+// Is implements errors.Is.
+func (ev ErrVal) Is(target error) bool {
+	return errors.Is(ev.Err, target)
+}
+
+// As implements errors.As.
+func (ev ErrVal) As(target any) bool {
+	return errors.As(ev.Err, target)
+}
+
+// Unwrap implements errors.Unwrap.
+func (ev ErrVal) Unwrap() error {
+	return ev.Err
+}
+
 // AValue is an atomic value with a type using generics. Interfaces should
 // generally not be passed as the generic since storing interfaces with
 // different concrete types will result in a runtime panic. If an interface is

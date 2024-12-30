@@ -24,10 +24,10 @@ Just some utilities that I often find myself wanting and recreating in various l
 - [x] DeferedCloser to add close funcs to possibly defer (based on DeferClose)
 - [x] DeferedFunc to add funcs to possibly defer (based on DeferFunc)
 - [x] Slice and SlicePtr wrapper structs
-    - [ ] Slice First/Last funcs
+    - [x] Slice First/Last funcs
 - [ ] Various encodings (e.g., JSON) for Mutexes and AValue
     - [x] (Un)MarshalJSON
-- [ ] Change Error field in ErrorValue from Error to Err?
+- [x] Change Error field in ErrorValue from Error to Err?
 - [ ] Func to create listener that has REUSEADDR set
-- [ ] Map maps, filters, etc.
-    - [ ] Create Map, Set, Slice with capacity
+- [x] Map maps, filters, etc.
+    - [x] Create Map, Set, Slice with capacity

@@ -10,6 +10,19 @@ func NewSet[T comparable]() *Set[T] {
 	return &Set[T]{m: make(map[T]Unit)}
 }
 
+func SetWithLen[T comparable](l int) *Set[T] {
+	return &Set[T]{m: make(map[T]Unit, l)}
+}
+
+// SetFromMapKeys creates a new set from the given map's keys.
+func SetFromMapKeys[K comparable, V any](m map[K]V) *Set[K] {
+	inner := make(map[K]Unit, len(m))
+	for k := range m {
+		inner[k] = Unit{}
+	}
+	return &Set[K]{m: inner}
+}
+
 // SetFromSlice creates a new set from the given slice. If duplicate values
 // exist, the last value is kept.
 func SetFromSlice[T comparable](s []T) *Set[T] {
@@ -50,6 +63,16 @@ func (s *Set[T]) Range(f func(T) bool) {
 	for k := range s.m {
 		if !f(k) {
 			return
+		}
+	}
+}
+
+// Filter iterates over each item in random order, removing items not
+// satisfying the given predicate.
+func (s *Set[T]) Filter(f func(T) bool) {
+	for t := range s.m {
+		if !f(t) {
+			delete(s.m, t)
 		}
 	}
 }

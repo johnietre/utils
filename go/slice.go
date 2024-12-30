@@ -79,7 +79,8 @@ func FilterMapSliceInPlaceUnstable[T any](s []T, f func(T) (T, bool)) []T {
 	return s[:back+1]
 }
 
-// SearchSlice searches a slice for a given value, returning the index of -1.
+// SearchSlice searches a slice for a given value, in order, returning the
+// index or -1.
 func SearchSlice[T comparable](s []T, t T) int {
 	for i, elem := range s {
 		if elem == t {
@@ -242,6 +243,12 @@ func NewClonedSlice[T any](data []T) *Slice[T] {
 	return NewSlice(CloneSlice(data))
 }
 
+// SliceWithLenCap creates a new slice with the given length and capacity (uses
+// make([]T, len, cap) internally).
+func SliceWithLenCap[T any](len, cap int) *Slice[T] {
+	return NewSlice(make([]T, len, cap))
+}
+
 // Data return the data of the underlying slice.
 func (s *Slice[T]) Data() []T {
 	return s.SlicePtr.Data()
@@ -349,6 +356,64 @@ func (sp *SlicePtr[T]) GetPtrNil(i int) *T {
 	return nil
 }
 
+// First returns the first element. Panis if the index length is 0.
+func (sp *SlicePtr[T]) First() T {
+	return sp.Get(0)
+}
+
+// FirstSafe returns the first element, retuning the default value and false if
+// it is empty.
+func (sp *SlicePtr[T]) FirstSafe() (T, bool) {
+	return sp.GetSafe(0)
+}
+
+// FirstPtr returns a pointer to the first element. Panis if the index length
+// is 0.
+func (sp *SlicePtr[T]) FirstPtr() *T {
+	return sp.GetPtr(0)
+}
+
+// FirstPtrSafe returns a pointer to the first element, retuning the default
+// value and false if it is empty.
+func (sp *SlicePtr[T]) FirstPtrSafe() (*T, bool) {
+	return sp.GetPtrSafe(0)
+}
+
+// FirstPtrNil returns a pointer to the first element, returning nil if length
+// is 0.
+func (sp *SlicePtr[T]) FirstPtrNil() *T {
+	return sp.GetPtrNil(0)
+}
+
+// Last returns the first element. Panis if the index length is 0.
+func (sp *SlicePtr[T]) Last() T {
+	return sp.Get(0)
+}
+
+// LastSafe returns the first element, retuning the default value and false if
+// it is empty.
+func (sp *SlicePtr[T]) LastSafe() (T, bool) {
+	return sp.GetSafe(0)
+}
+
+// LastPtr returns a pointer to the first element. Panis if the index length is
+// 0.
+func (sp *SlicePtr[T]) LastPtr() *T {
+	return sp.GetPtr(0)
+}
+
+// LastPtrSafe returns a pointer to the first element, retuning the default
+// value and false if it is empty.
+func (sp *SlicePtr[T]) LastPtrSafe() (*T, bool) {
+	return sp.GetPtrSafe(0)
+}
+
+// LastPtrNil returns a pointer to the first element, returning nil if length
+// is 0.
+func (sp *SlicePtr[T]) LastPtrNil() *T {
+	return sp.GetPtrNil(0)
+}
+
 // PushFront appends the value to the front of the slice.
 func (sp *SlicePtr[T]) PushFront(elem T) {
 	*sp.Ptr = append([]T{elem}, sp.Data()...)
@@ -391,6 +456,16 @@ func (sp *SlicePtr[T]) Remove(i int) (t T, ok bool) {
 // if it exists.
 func (sp *SlicePtr[T]) RemoveFirst(f func(T) bool) (t T, ok bool) {
 	i := sp.Index(f)
+	if i == -1 {
+		return
+	}
+	return sp.Remove(i)
+}
+
+// RemoveLast removes the last element satisfying the predicate, returning it
+// if it exists.
+func (sp *SlicePtr[T]) RemoveLast(f func(T) bool) (t T, ok bool) {
+	i := sp.IndexLast(f)
 	if i == -1 {
 		return
 	}
@@ -463,6 +538,57 @@ func (sp *SlicePtr[T]) Eq(s []T, eq func(t1, t2 T) bool) bool {
 		}
 	}
 	return true
+}
+
+// FilterInPlace applies a predicate over each element in the slice in order,
+// with retained elements kept at the front. Uses `FilterSliceInPlace`
+// internally.
+func (sp *SlicePtr[T]) FilterInPlace(f func(T) bool) {
+	*sp.Ptr = FilterSliceInPlace(*sp.Ptr, f)
+}
+
+// FilterInPlaceUnstable applies a predicate over each element in the slice in
+// order, with retained elements kept at the front. Uses
+// `FilterSliceInPlaceUnstable` internally.
+func (sp *SlicePtr[T]) FilterInPlaceUnstable(f func(T) bool) {
+	*sp.Ptr = FilterSliceInPlaceUnstable(*sp.Ptr, f)
+}
+
+// MapInPlace maps a function onto the slice in place in order. Uses
+// `MapSliceInPlace` internally.
+func (sp *SlicePtr[T]) MapInPlace(f func(T) T) {
+	MapSliceInPlace(*sp.Ptr, f)
+}
+
+// FilterMapInPlace filters and maps the elements of the slice in place in
+// order. Uses `FilterMapSliceInPlace` internally.
+func (sp *SlicePtr[T]) FilterMapInPlace(f func(T) (T, bool)) {
+	FilterMapSliceInPlace(*sp.Ptr, f)
+}
+
+// FilterMapInPlaceUnstable filters and maps the elements of the slice in place
+// in order. Uses `FilterMapSliceInPlaceUnstable` internally.
+func (sp *SlicePtr[T]) FilterMapInPlaceUnstable(f func(T) (T, bool)) {
+	FilterMapSliceInPlaceUnstable(*sp.Ptr, f)
+}
+
+// Filter applies a predicate over each element in the slice in order,
+// returning a new Slice. Uses `FilterSlice`
+// internally.
+func (sp *SlicePtr[T]) Filter(f func(T) bool) *Slice[T] {
+	return NewSlice(FilterSlice(*sp.Ptr, f))
+}
+
+// Map maps a function onto the slice in order, returning a new Slice. Uses
+// `MapSlice` internally.
+func (sp *SlicePtr[T]) Map(f func(T) T) *Slice[T] {
+	return NewSlice(MapSlice(*sp.Ptr, f))
+}
+
+// FilterMap filters and maps the elements of the slice in
+// order, returning a new Slice. Uses `FilterMapSlice` internally.
+func (sp *SlicePtr[T]) FilterMap(f func(T) (T, bool)) *Slice[T] {
+	return NewSlice(FilterMapSlice(*sp.Ptr, f))
 }
 
 // Sort sorts the slice using the given `less` function.
