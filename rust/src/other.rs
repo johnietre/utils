@@ -50,10 +50,10 @@ macro_rules! make_map {
         m
     }};
     ($($key:expr => $val:expr),+ $(,)?) => {{
-        make_map!(make_map!(); $($key => $val,)*)
+        $crate::make_map!($crate::make_map!(); $($key => $val,)*)
     }};
     (btree; $($key:expr => $val:expr),+ $(,)?) => {{
-        make_map!(make_map!(btree); $($key => $val,)*)
+        $crate::make_map!($crate::make_map!(btree); $($key => $val,)*)
     }};
     () => {
         ::std::collections::HashMap::new()
@@ -72,10 +72,10 @@ macro_rules! make_set {
         m
     }};
     ($($val:expr),+ $(,)?) => {{
-        make_set!(make_set!(); $($val,)*)
+        $crate::make_set!($crate::make_set!(); $($val,)*)
     }};
     (btree; $($val:expr),+ $(,)?) => {{
-        make_set!(make_set!(btree); $($val,)*)
+        $crate::make_set!($crate::make_set!(btree); $($val,)*)
     }};
     () => {
         ::std::collections::HashSet::new()
@@ -88,8 +88,11 @@ macro_rules! make_set {
 /// Creates a linked list containing the arguments.
 #[macro_export]
 macro_rules! make_linked_list {
+    () => {
+        ::std::collections::LinkedList::new()
+    };
     ($($val:expr),+ $(,)? $(; $ll:expr $(,)?)?) => {{
-        let mut ll = make_linked_list!();
+        let mut ll = $crate::make_linked_list!();
         $(ll.push_back($val);)+
         $(
             let mut other = $ll;
@@ -106,16 +109,13 @@ macro_rules! make_linked_list {
         )?
         ll
     }};
-    () => {
-        ::std::collections::LinkedList::new()
-    };
 }
 
 /// Creates a VecDeque containing the arguments.
 #[macro_export]
 macro_rules! make_vec_deque {
     ($($val:expr),+ $(,)? $(; $dd:expr $(,)?)?) => {{
-        let mut dd = make_vec_deque!();
+        let mut dd = $crate::make_vec_deque!();
         $(dd.push_back($val);)+
         $(
             let mut other = $dd;
@@ -146,7 +146,7 @@ macro_rules! make_heap {
         m
     }};
     ($($val:expr),+ $(,)?) => {{
-        make_heap!(make_heap!(); $($val,)*)
+        $crate::make_heap!($crate::make_heap!(); $($val,)*)
     }};
     () => {
         ::std::collections::BinaryHeap::new()
