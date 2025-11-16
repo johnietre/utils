@@ -8,7 +8,7 @@ mod die_mod {
     #[macro_export]
     macro_rules! die {
         () => { crate::die!(code: 1) };
-        (code: $code:expr $(;)?) => { crate::die($code) };
+        (code: $code:expr $(;)?) => { ::std::process::exit($code) };
         (msg: $($args:tt)*) => { crate::die!(code: 1; msg: $($args)*) };
         (code: $code:expr; msg: $($args:tt)*) => {{
             ::std::eprintln!($($args)*);

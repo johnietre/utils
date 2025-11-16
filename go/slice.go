@@ -356,7 +356,7 @@ func (sp *SlicePtr[T]) GetPtrNil(i int) *T {
 	return nil
 }
 
-// First returns the first element. Panis if the index length is 0.
+// First returns the first element. Panics if the length is 0.
 func (sp *SlicePtr[T]) First() T {
 	return sp.Get(0)
 }
@@ -367,8 +367,7 @@ func (sp *SlicePtr[T]) FirstSafe() (T, bool) {
 	return sp.GetSafe(0)
 }
 
-// FirstPtr returns a pointer to the first element. Panis if the index length
-// is 0.
+// FirstPtr returns a pointer to the first element. Panics if the length is 0.
 func (sp *SlicePtr[T]) FirstPtr() *T {
 	return sp.GetPtr(0)
 }
@@ -385,7 +384,7 @@ func (sp *SlicePtr[T]) FirstPtrNil() *T {
 	return sp.GetPtrNil(0)
 }
 
-// Last returns the first element. Panis if the index length is 0.
+// Last returns the first element. Panics if the length is 0.
 func (sp *SlicePtr[T]) Last() T {
 	return sp.Get(0)
 }
@@ -396,8 +395,7 @@ func (sp *SlicePtr[T]) LastSafe() (T, bool) {
 	return sp.GetSafe(0)
 }
 
-// LastPtr returns a pointer to the first element. Panis if the index length is
-// 0.
+// LastPtr returns a pointer to the first element. Panics if the length is 0.
 func (sp *SlicePtr[T]) LastPtr() *T {
 	return sp.GetPtr(0)
 }

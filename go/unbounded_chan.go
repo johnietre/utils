@@ -30,7 +30,7 @@ func NewUChan[T any](l int) *UChan[T] {
 	return &UChan[T]{
 		ch: make(chan T, l),
 		//buf: list.New(),
-		buf: NewMutex[*list.List](list.New()),
+		buf: NewMutex(list.New()),
 	}
 }
 
@@ -161,7 +161,11 @@ func (uc *UChan[T]) moveMsg() {
 			return
 		}
 		e := buf.Front()
-		uc.ch <- e.Value.(T)
+    select {
+    case uc.ch <- e.Value.(T):
+    default:
+      return
+    }
 		buf.Remove(e)
 		// If there are no more messages in the buffer and the UChan is closed, it's
 		// safe to close the chan
