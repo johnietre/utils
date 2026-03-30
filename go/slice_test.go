@@ -121,6 +121,41 @@ func TestSlice(t *testing.T) {
 	rs := generateSlice(l, true)
 	s := NewSlice(rs)
 
+	t.Run("NewSlice", func(t *testing.T) {
+		s2 := NewFilledSlice(15, 1000, 2000)
+		if s2.Len() != 1000 || s2.Cap() != 2000 {
+			t.Fatalf(
+				"expected len/cap of %d/%d, got %d/%d",
+				1000, 2000,
+				s2.Len(), s2.Cap(),
+			)
+		}
+		for i := 0; i < s2.Len(); i++ {
+			if s2.Get(i) != 15 {
+				t.Fatalf("%d: expected %d, got %d", i, 15, s2.Get(i))
+			}
+		}
+
+		eqFunc := func(val1, val2 int) bool {
+			return val1 == val2
+		}
+		s2 = NewFilledSliceWith(
+			func(i int) int { return s.Get(i) },
+			s.Len(),
+			s.Cap(),
+		)
+		if s.Len() != s2.Len() {
+			t.Fatalf("expected length of %d, got %d", s.Len(), s2.Len())
+		}
+		if !s.Eq(s2.Data(), eqFunc) {
+			for i := 0; i < s.Len(); i++ {
+				if s.Get(i) != s2.Get(i) {
+					t.Fatalf("%d: expcted %d, got %d", i, s.Get(i), s2.Get(i))
+				}
+			}
+		}
+	})
+
 	t.Run("SliceIndexing", func(t *testing.T) {
 		if s.Len() != l {
 			t.Fatalf("expected length of %d, got %d", l, s.Len())
@@ -234,4 +269,15 @@ func TestSlice(t *testing.T) {
 	})
 
 	// TODO: Rest of tests and check prior tests
+
+	t.Run("SliceMethods", func(t *testing.T) {
+		s2 := NewFilledSlice(15, 1000, 2000)
+		s2.Clear()
+		if s2.Len() != 0 {
+			t.Fatalf("expected empty slice, got length of %d", s2.Len())
+		}
+		if s2.Cap() != 2000 {
+			t.Fatalf("expected capacity of %d, got %d", 2000, s2.Cap())
+		}
+	})
 }

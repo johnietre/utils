@@ -5,6 +5,47 @@ import (
 	"sort"
 )
 
+// FillNewSlice creates a new slice with specified the length and (optional)
+// capacity and fills it with the given value.
+func FillNewSlice[T any](val T, l int, cap ...int) []T {
+	var res []T
+	if len(cap) != 0 {
+		res = make([]T, l, cap[0])
+	} else {
+		res = make([]T, l)
+	}
+	return FillSlice(res, val)
+}
+
+// FillNewSliceWith creates a new slice with the specified length and
+// (optional) capacity and fills it with the return value of each call to `f`.
+func FillNewSliceWith[T any](f func(index int) T, l int, cap ...int) []T {
+	var res []T
+	if len(cap) != 0 {
+		res = make([]T, l, cap[0])
+	} else {
+		res = make([]T, l)
+	}
+	return FillSliceWith(res, f)
+}
+
+// FillSlice fills a slice with the given value (in place) and returns it back.
+func FillSlice[T any](s []T, val T) []T {
+	for i := range s {
+		s[i] = val
+	}
+	return s
+}
+
+// FillSliceWith fills a slice with the return value of each call to `f`
+// (in place) and returns it back.
+func FillSliceWith[T any](s []T, f func(index int) T) []T {
+	for i := range s {
+		s[i] = f(i)
+	}
+	return s
+}
+
 // CloneSlice clones a slice.
 func CloneSlice[T any](s []T) []T {
 	res := make([]T, len(s))
@@ -227,7 +268,7 @@ type Index interface {
 }
 */
 
-// Slice is a wrapper around a standart Go slice.
+// Slice is a wrapper around a standard Go slice.
 type Slice[T any] struct {
 	*SlicePtr[T]
 }
@@ -237,16 +278,40 @@ func NewSlice[T any](data []T) *Slice[T] {
 	return &Slice[T]{SlicePtr: NewSlicePtr(&data)}
 }
 
-// NewClosedSlice creates a new slice wrapper with the underlying data being
+// NewClosedSlice creates a new `Slice` wrapper with the underlying data being
 // cloned from the given slice.
 func NewClonedSlice[T any](data []T) *Slice[T] {
 	return NewSlice(CloneSlice(data))
 }
 
-// SliceWithLenCap creates a new slice with the given length and capacity (uses
-// make([]T, len, cap) internally).
+// SliceWithLenCap creates a new `Slice` with the given length and capacity
+// (uses make([]T, len, cap) internally).
+//
+// Deprecated: Use NewSliceWithLen for better consistency and usage.
 func SliceWithLenCap[T any](len, cap int) *Slice[T] {
 	return NewSlice(make([]T, len, cap))
+}
+
+// NewSliceWithLen creates a new `Slice` with the given length and (optional)
+// capacity (uses make([]T, len, cap) internally).
+func NewSliceWithLen[T any](l int, cap ...int) *Slice[T] {
+	if len(cap) != 0 {
+		return NewSlice(make([]T, l, cap[0]))
+	} else {
+		return NewSlice(make([]T, l))
+	}
+}
+
+// NewFilledSlice creates a new `Slice` with given the length and (optional)
+// capacity and fills it with the given value.
+func NewFilledSlice[T any](val T, len int, cap ...int) *Slice[T] {
+	return NewSlice(FillNewSlice(val, len, cap...))
+}
+
+// NewFilledSliceWith creates a new `Slice` with the specified length and
+// (optional) capacity and fills it with the return value of each call to `f`.
+func NewFilledSliceWith[T any](f func(int) T, len int, cap ...int) *Slice[T] {
+	return NewSlice(FillNewSliceWith(f, len, cap...))
 }
 
 // Data return the data of the underlying slice.
@@ -491,9 +556,38 @@ func (sp *SlicePtr[T]) PopBack() (t T, ok bool) {
 	return
 }
 
+// Clear clears the slice (sets the length to 0, maintaining the capacity).
+func (sp *SlicePtr[T]) Clear() {
+	if sp.Ptr == nil {
+		return
+	}
+	*sp.Ptr = (*sp.Ptr)[:0]
+}
+
+// Fill fills the slice with the given value.
+func (sp *SlicePtr[T]) Fill(val T) {
+	data := sp.Data()
+	for i := range data {
+		data[i] = val
+	}
+}
+
+// FillWith fills the slice with the return value of each call to `f`.
+func (sp *SlicePtr[T]) FillWith(f func(index int) T) {
+	data := sp.Data()
+	for i := range data {
+		data[i] = f(i)
+	}
+}
+
 // Len returns the length of the slice.
 func (sp *SlicePtr[T]) Len() int {
 	return len(sp.Data())
+}
+
+// Cap returns the capacity of the slice.
+func (sp *SlicePtr[T]) Cap() int {
+	return cap(sp.Data())
 }
 
 // Index finds the first element satifying the predicate, returning the index

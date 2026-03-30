@@ -161,11 +161,11 @@ func (uc *UChan[T]) moveMsg() {
 			return
 		}
 		e := buf.Front()
-    select {
-    case uc.ch <- e.Value.(T):
-    default:
-      return
-    }
+		select {
+		case uc.ch <- e.Value.(T):
+		default:
+			return
+		}
 		buf.Remove(e)
 		// If there are no more messages in the buffer and the UChan is closed, it's
 		// safe to close the chan
