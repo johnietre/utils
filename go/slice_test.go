@@ -173,6 +173,12 @@ func TestSlice(t *testing.T) {
 			}
 		}
 
+		if s.First() != rs[0] {
+			t.Fatalf("expected %d, got %d", rs[0], s.First())
+		} else if s.Last() != rs[l-1] {
+			t.Fatalf("expected %d, got %d", rs[l-1], s.Last())
+		}
+
 		sliced := NewSlice(s.GetSlice(-1, -1))
 		if sliced.Len() != l {
 			t.Fatalf("expected length of %d, got %d", l, sliced.Len())

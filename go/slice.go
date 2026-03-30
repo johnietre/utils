@@ -451,30 +451,30 @@ func (sp *SlicePtr[T]) FirstPtrNil() *T {
 
 // Last returns the first element. Panics if the length is 0.
 func (sp *SlicePtr[T]) Last() T {
-	return sp.Get(0)
+	return sp.Get(sp.Len() - 1)
 }
 
 // LastSafe returns the first element, retuning the default value and false if
 // it is empty.
 func (sp *SlicePtr[T]) LastSafe() (T, bool) {
-	return sp.GetSafe(0)
+	return sp.GetSafe(sp.Len() - 1)
 }
 
 // LastPtr returns a pointer to the first element. Panics if the length is 0.
 func (sp *SlicePtr[T]) LastPtr() *T {
-	return sp.GetPtr(0)
+	return sp.GetPtr(sp.Len() - 1)
 }
 
 // LastPtrSafe returns a pointer to the first element, retuning the default
 // value and false if it is empty.
 func (sp *SlicePtr[T]) LastPtrSafe() (*T, bool) {
-	return sp.GetPtrSafe(0)
+	return sp.GetPtrSafe(sp.Len() - 1)
 }
 
 // LastPtrNil returns a pointer to the first element, returning nil if length
 // is 0.
 func (sp *SlicePtr[T]) LastPtrNil() *T {
-	return sp.GetPtrNil(0)
+	return sp.GetPtrNil(sp.Len() - 1)
 }
 
 // PushFront appends the value to the front of the slice.
